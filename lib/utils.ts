@@ -63,26 +63,43 @@ export const generateId = () =>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const formatError = (error: any): string => {
-  if (error.name === "ZodError") {
-    const fieldErrors = Object.keys(error.errors).map((field) => {
-      const errorMessage = error.errors[field].message;
-      return `${error.errors[field].path}: ${errorMessage}`; // field: errorMessage
-    });
-    return fieldErrors.join(". ");
-  } else if (error.name === "ValidationError") {
-    const fieldErrors = Object.keys(error.errors).map((field) => {
-      const errorMessage = error.errors[field].message;
+  // ZodError (zod v3/v4 differences)
+  if (error?.name === "ZodError") {
+    // v4 exposes issues array
+    if (Array.isArray(error.issues)) {
+      const messages = error.issues.map((issue: any) => {
+        const path = Array.isArray(issue.path) ? issue.path.join(".") : issue.path;
+        return path ? `${path}: ${issue.message}` : issue.message;
+      });
+      return messages.join(". ");
+    }
+
+    // Fallback for older shape
+    if (error.errors && typeof error.errors === "object") {
+      const fieldErrors = Object.keys(error.errors).map((field) => {
+        const err = error.errors[field];
+        const errorMessage = err?.message ?? JSON.stringify(err);
+        const path = err?.path ?? field;
+        return `${path}: ${errorMessage}`;
+      });
+      return fieldErrors.join(". ");
+    }
+
+    // Last-resort stringification
+    return typeof error.message === "string" ? error.message : JSON.stringify(error);
+  } else if (error?.name === "ValidationError") {
+    const fieldErrors = Object.keys(error.errors || {}).map((field) => {
+      const errorMessage = error.errors[field]?.message ?? JSON.stringify(error.errors[field]);
       return errorMessage;
     });
     return fieldErrors.join(". ");
-  } else if (error.code === 11000) {
-    const duplicateField = Object.keys(error.keyValue)[0];
+  } else if (error?.code === 11000) {
+    const duplicateField = Object.keys(error.keyValue || {})[0];
     return `${duplicateField} already exists`;
   } else {
-    // return 'Something went wrong. please try again'
-    return typeof error.message === "string"
+    return typeof error?.message === "string"
       ? error.message
-      : JSON.stringify(error.message);
+      : JSON.stringify(error?.message ?? error);
   }
 };
 

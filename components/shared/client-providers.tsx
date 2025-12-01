@@ -3,6 +3,7 @@
 import useCartSidebar from "@/hooks/use-cart-sidebar";
 import { ClientSetting } from "@/types";
 import React from "react";
+import type { Session } from "next-auth";
 import { Toaster } from "sonner";
 import AppInitializer from "./app-initializer";
 import CartSidebar from "./cart-sidebar";
@@ -16,7 +17,7 @@ export default function ClientProviders({
 }: {
   children: React.ReactNode;
   setting: ClientSetting;
-  session?: unknown;
+  session?: Session | null | undefined;
 }) {
   const visible = useCartSidebar();
 

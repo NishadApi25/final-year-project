@@ -37,16 +37,13 @@ export async function generateMetadata() {
 }
 
 type AppLayoutProps = {
-  params: { locale: string } | Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
   children: React.ReactNode;
 };
 
-export default async function AppLayout({
-  params,
-  children,
-}: AppLayoutProps): Promise<ReactNode> {
+export default async function AppLayout({ params, children }: AppLayoutProps) {
   const resolvedParams = await params;
-  const { locale } = resolvedParams;
+  const { locale } = resolvedParams as { locale: string };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!routing.locales.includes(locale as any)) {
