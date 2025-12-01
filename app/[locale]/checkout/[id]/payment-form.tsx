@@ -140,7 +140,7 @@ export default function OrderDetailsForm({
               </Elements>
             )}
 
-            {!isPaid && paymentMethod === "bKash" && (
+            {!isPaid && paymentMethod && paymentMethod.toLowerCase() === "bkash" && (
               <BkashForm
                 orderId={order._id}
                 totalPrice={order.totalPrice}

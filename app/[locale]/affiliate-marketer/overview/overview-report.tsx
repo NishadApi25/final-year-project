@@ -264,9 +264,9 @@ export default function OverviewReport() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {productData.map((product) => (
+              {productData.map((product, idx) => (
                 <div
-                  key={product.productId}
+                  key={`${product.productId ?? product.productName}-${idx}`}
                   className="flex justify-between items-center border-b pb-2"
                 >
                   <div>

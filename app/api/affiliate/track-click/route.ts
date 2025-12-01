@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     const productId = request.nextUrl.searchParams.get("productId");
     const affiliateUserId = request.nextUrl.searchParams.get("affiliateUserId");
 
-    let query: any = {};
+    const query: any = {};
 
     if (productId) query.productId = productId;
     if (affiliateUserId) query.affiliateUserId = affiliateUserId;

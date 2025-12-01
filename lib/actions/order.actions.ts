@@ -15,6 +15,7 @@ import { paypal } from "../paypal";
 import { formatError, round2 } from "../utils";
 import { OrderInputSchema } from "../validator";
 import { getSetting } from "./setting.actions";
+import AffiliateEarning from "../db/models/affiliate-earning.model";
 
 // GET ORDERS
 export async function getOrderSummary(date: DateRange) {
@@ -339,6 +340,38 @@ export async function approvePayPalOrder(
     await order.save();
     await sendPurchaseReceipt({ order });
     revalidatePath(`/account/orders/${orderId}`);
+    // Record affiliate earnings if order was placed through affiliate link
+    try {
+      const affiliateUserId = (order as any).affiliateUserId;
+      if (affiliateUserId) {
+        const getCommissionPercent = (category?: string) => {
+          if (!category) return 10;
+          const c = category.toLowerCase();
+          if (c.includes("shoe")) return 5;
+          if (c.includes("jean") || c.includes("pant")) return 7;
+          if (c.includes("watch") || c.includes("watches")) return 10;
+          return 10;
+        };
+
+        for (const item of order.items) {
+          const percent = getCommissionPercent(item.category);
+          const commissionAmount =
+            Math.round(((item.price * item.quantity * percent) / 100) * 100) / 100;
+
+          await AffiliateEarning.create({
+            affiliateUserId,
+            orderId: order._id,
+            productId: item.product,
+            orderAmount: item.price * item.quantity,
+            commissionPercent: percent,
+            commissionAmount,
+            status: "confirmed",
+          });
+        }
+      }
+    } catch (err) {
+      console.error("Error recording affiliate earning for PayPal order:", err);
+    }
     return {
       success: true,
       message: "Your order has been successfully paid by PayPal",

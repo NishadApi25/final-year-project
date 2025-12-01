@@ -18,6 +18,12 @@ export default function GenerateAffiliateButton({
   const [error, setError] = useState("");
   const { data: session } = useSession();
 
+  const isAffiliate = Boolean(
+    session?.user?.affiliateRequest === true ||
+      (session?.user?.role &&
+        ["affiliate", "affiliater"].includes(session.user.role.toLowerCase()))
+  );
+
   const generate = async () => {
     try {
       setError("");
@@ -39,6 +45,8 @@ export default function GenerateAffiliateButton({
       setLoading(false);
     }
   };
+
+  if (!isAffiliate) return null;
 
   return (
     <div className={className}>

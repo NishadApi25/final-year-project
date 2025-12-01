@@ -9,6 +9,7 @@ const BKASH_USERNAME = process.env.BKASH_USERNAME || "";
 const BKASH_PASSWORD = process.env.BKASH_PASSWORD || "";
 const BKASH_CALLBACK_URL =
   process.env.BKASH_CALLBACK_URL || "http://localhost:4007/api/bkash/callback";
+const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_BKASH === "true"; // Enable mock mode for testing
 
 let tokenCache = {
   token: "",
@@ -19,6 +20,17 @@ let tokenCache = {
 async function getToken() {
   // Return cached token if still valid
   if (tokenCache.token && tokenCache.expiresAt > Date.now()) {
+    return tokenCache.token;
+  }
+
+  // Mock mode: return a fake token for local testing
+  if (MOCK_MODE) {
+    tokenCache = {
+      token: "mock_token_" + Math.random().toString(36).substr(2, 9),
+      refreshToken: "mock_refresh_token",
+      expiresAt: Date.now() + 55 * 60 * 1000,
+    };
+    console.log("[bKash Mock] Token generated");
     return tokenCache.token;
   }
 
@@ -54,6 +66,18 @@ export const bkash = {
    */
   createPayment: async function (orderId: string, amount: number, customerPhone: string) {
     const token = await getToken();
+
+    // Mock mode: return a mock payment ID and redirect URL
+    if (MOCK_MODE) {
+      // For mock mode, pass orderId directly in the URL as a query parameter (it's safe via URL encoding)
+      const paymentID = "mock_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+      const mockCheckoutUrl = `${BKASH_CALLBACK_URL}?paymentID=${paymentID}&orderId=${encodeURIComponent(orderId)}&status=Completed`;
+      console.log(`[bKash Mock] Payment created: ${paymentID}, orderId: ${orderId}`);
+      return {
+        paymentID,
+        bkashURL: mockCheckoutUrl,
+      };
+    }
 
     const response = await fetch(
       `${BASE_URL}/v1.2.0/tokenized/checkout/create`,
@@ -128,8 +152,26 @@ export const bkash = {
   /**
    * Query payment status
    */
-  queryPayment: async function (paymentID: string) {
+  queryPayment: async function (paymentID: string, orderId?: string) {
     const token = await getToken();
+
+    // Mock mode: return a successful payment status
+    if (MOCK_MODE) {
+      // In mock mode, orderId is passed as a parameter
+      const mockOrderId = orderId || "unknown_order";
+      console.log(`[bKash Mock] Querying payment status - paymentID: ${paymentID}, orderId: ${mockOrderId}`);
+      return {
+        statusCode: "0000",
+        statusMessage: "Successful",
+        paymentID: paymentID,
+        transactionStatus: "Completed",
+        trxID: "mock_trx_" + Math.random().toString(36).substr(2, 9),
+        merchantInvoiceNumber: mockOrderId,
+        amount: 100,
+        customerMsisdn: "01712345678",
+        completedTime: new Date().toISOString(),
+      };
+    }
 
     const response = await fetch(
       `${BASE_URL}/v1.2.0/tokenized/checkout/payment/status`,

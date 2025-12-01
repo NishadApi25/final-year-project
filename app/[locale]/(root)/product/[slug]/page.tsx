@@ -1,5 +1,4 @@
 
-import { useRouter } from "next/router";
 import { auth } from "@/auth";
 import { getProductBySlug, getRelatedProductsByCategory } from "@/lib/actions/product.actions";
 import AddToCart from "@/components/shared/product/add-to-cart";

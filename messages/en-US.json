@@ -102,6 +102,9 @@
     "Rating": "Rating",
     "No reviews yet": "No reviews yet",
     "Submitting": "Submitting..."
+    ,
+    "Proceeding to checkout": "Proceeding to checkout",
+    "Something went wrong": "Something went wrong"
   },
   "Cart": {
     "Shopping Cart": "Shopping Cart",

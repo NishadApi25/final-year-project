@@ -63,6 +63,7 @@ export default async function AppLayout({ params, children }: AppLayoutProps) {
       suppressHydrationWarning
     >
       <body
+        suppressHydrationWarning
         className={`min-h-screen ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>

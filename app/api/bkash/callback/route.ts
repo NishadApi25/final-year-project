@@ -13,6 +13,7 @@ import { sendPurchaseReceipt } from "@/emails";
 export async function GET(request: NextRequest) {
   try {
     const paymentID = request.nextUrl.searchParams.get("paymentID");
+    const orderId = request.nextUrl.searchParams.get("orderId"); // For mock mode, orderId is passed in URL
 
     if (!paymentID) {
       return NextResponse.json(
@@ -23,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     await connectToDatabase();
 
-    // Query payment status from bKash
-    const paymentStatus = await bkash.queryPayment(paymentID);
+    // Query payment status from bKash (pass orderId for mock mode)
+    const paymentStatus = await bkash.queryPayment(paymentID, orderId || undefined);
 
     if (paymentStatus.statusCode !== "0000") {
       return NextResponse.json(
@@ -37,8 +38,8 @@ export async function GET(request: NextRequest) {
 
     if (transactionStatus === "Completed") {
       // Find order by invoice number (we set this to orderId when creating payment)
-      const orderId = paymentStatus.merchantInvoiceNumber;
-      const order = await Order.findById(orderId).populate<{
+      const orderIdFromPayment = paymentStatus.merchantInvoiceNumber;
+      const order = await Order.findById(orderIdFromPayment).populate<{
         user: { email: string; name: string };
         items: any[];
       }>("user", "email name");

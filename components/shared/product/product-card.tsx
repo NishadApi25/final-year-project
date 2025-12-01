@@ -29,6 +29,12 @@ const ProductCard = ({
   const [affiliateLink, setAffiliateLink] = useState("");
   const { data: session } = useSession();
 
+  const isAffiliate = Boolean(
+    session?.user?.affiliateRequest === true ||
+      (session?.user?.role &&
+        ["affiliate", "affiliater"].includes(session.user.role.toLowerCase()))
+  );
+
   const generateLink = async () => {
     try {
       if (!session?.user?.id) {
@@ -101,10 +107,12 @@ const ProductCard = ({
           image: product.images[0],
         }}
       />
-      
-      <button onClick={generateLink} className="border-2 border-yellow-400 text-white bg-red-600 hover:bg-red-700 w-full py-1 rounded font-semibold">
-        Generate Affiliate Link
-      </button>
+
+      {isAffiliate && (
+        <button onClick={generateLink} className="border-2 border-yellow-400 text-white bg-red-600 hover:bg-red-700 w-full py-1 rounded font-semibold">
+          Generate Affiliate Link
+        </button>
+      )}
     </div>
   );
 

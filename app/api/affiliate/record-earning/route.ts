@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     const affiliateUserId = request.nextUrl.searchParams.get("affiliateUserId");
     const status = request.nextUrl.searchParams.get("status");
 
-    let query: any = {};
+    const query: any = {};
 
     if (affiliateUserId) query.affiliateUserId = affiliateUserId;
     if (status) query.status = status;
