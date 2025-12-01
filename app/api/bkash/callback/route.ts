@@ -38,8 +38,8 @@ export async function GET(request: NextRequest) {
 
     if (transactionStatus === "Completed") {
       // Find order by invoice number (we set this to orderId when creating payment)
-      const orderIdFromPayment = paymentStatus.merchantInvoiceNumber;
-      const order = await Order.findById(orderIdFromPayment).populate<{
+      const orderId = paymentStatus.merchantInvoiceNumber;
+      const order = await Order.findById(orderId).populate<{
         user: { email: string; name: string };
         items: any[];
       }>("user", "email name");
