@@ -5,8 +5,6 @@
 const BASE_URL = process.env.BKASH_API_URL || "https://sandbox.bkashapi.com";
 const BKASH_APP_KEY = process.env.BKASH_APP_KEY || "";
 const BKASH_APP_SECRET = process.env.BKASH_APP_SECRET || "";
-const BKASH_USERNAME = process.env.BKASH_USERNAME || "";
-const BKASH_PASSWORD = process.env.BKASH_PASSWORD || "";
 const BKASH_CALLBACK_URL =
   process.env.BKASH_CALLBACK_URL || "http://localhost:4007/api/bkash/callback";
 const MOCK_MODE = process.env.NEXT_PUBLIC_MOCK_BKASH === "true"; // Enable mock mode for testing

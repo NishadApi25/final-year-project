@@ -342,7 +342,7 @@ export async function approvePayPalOrder(
     revalidatePath(`/account/orders/${orderId}`);
     // Record affiliate earnings if order was placed through affiliate link
     try {
-      const affiliateUserId = (order as any).affiliateUserId;
+      const affiliateUserId = (order as { affiliateUserId?: string }).affiliateUserId;
       if (affiliateUserId) {
         const getCommissionPercent = (category?: string) => {
           if (!category) return 10;

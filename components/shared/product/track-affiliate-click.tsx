@@ -3,7 +3,6 @@
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
 
 interface TrackAffiliateClickProps {
   productId: string;
@@ -11,7 +10,6 @@ interface TrackAffiliateClickProps {
 
 export default function TrackAffiliateClick({ productId }: TrackAffiliateClickProps) {
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
   const affiliateUserId = searchParams.get("affiliate");
 
   useEffect(() => {

@@ -4,7 +4,7 @@ export interface IAffiliateWithdraw extends Document {
   affiliateUserId: string;
   amount: number;
   status: "pending" | "paid" | "rejected";
-  paymentDetails?: Record<string, any>;
+  paymentDetails?: Record<string, string | number | boolean>;
   requestedAt: Date;
   processedAt?: Date;
 }

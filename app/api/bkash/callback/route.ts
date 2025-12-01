@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
-import Order from "@/lib/db/models/order.model";
+import Order, { type IOrder } from "@/lib/db/models/order.model";
 import AffiliateEarning from "@/lib/db/models/affiliate-earning.model";
 import { bkash } from "@/lib/bkash";
 import { sendPurchaseReceipt } from "@/emails";
@@ -38,10 +38,10 @@ export async function GET(request: NextRequest) {
 
     if (transactionStatus === "Completed") {
       // Find order by invoice number (we set this to orderId when creating payment)
-      const orderId = paymentStatus.merchantInvoiceNumber;
-      const order = await Order.findById(orderId).populate<{
+      const orderIdFromPayment = paymentStatus.merchantInvoiceNumber;
+      const order = await Order.findById(orderIdFromPayment).populate<{
         user: { email: string; name: string };
-        items: any[];
+        items: unknown[];
       }>("user", "email name");
 
       if (!order) {
@@ -75,12 +75,12 @@ export async function GET(request: NextRequest) {
 
       // Send receipt email
       if (order.user?.email) {
-        await sendPurchaseReceipt({ order });
+        await sendPurchaseReceipt({ order: order as unknown as IOrder });
       }
 
       // Record affiliate earnings if order came through affiliate link
       // Get affiliateUserId from order data (should be stored during checkout)
-      const affiliateUserId = (order as any).affiliateUserId;
+      const affiliateUserId = (order as { affiliateUserId?: string }).affiliateUserId;
       if (affiliateUserId) {
         const getCommissionPercent = (category?: string) => {
           if (!category) return 10;
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
           return 10;
         };
 
-        for (const item of order.items) {
+        for (const item of order.items as { category?: string; price: number; quantity: number; product: string }[]) {
           const percent = getCommissionPercent(item.category);
           const commissionAmount =
             Math.round(((item.price * item.quantity * percent) / 100) * 100) / 100;
@@ -133,10 +133,11 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("bKash callback error:", error);
+    const errorMsg = error instanceof Error ? error.message : "Callback processing failed";
     return NextResponse.json(
-      { success: false, message: error.message || "Callback processing failed" },
+      { success: false, message: errorMsg },
       { status: 500 }
     );
   }

@@ -9,14 +9,13 @@ import { Loader } from "lucide-react";
 
 export default function BkashVerifyClient({
   paymentID,
-  status,
 }: {
   paymentID: string;
   status?: string;
 }) {
   const router = useRouter();
   const [verifying, setVerifying] = useState(true);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{ success?: boolean; message?: string; orderId?: string; paymentID?: string; status?: string } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -53,11 +52,10 @@ export default function BkashVerifyClient({
         } else {
           setError(response.data.message || "Payment verification failed");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Verification error:", err);
-        setError(
-          err.response?.data?.message || "Failed to verify payment. Please contact support."
-        );
+        const errorMsg = err instanceof Error ? err.message : "Failed to verify payment. Please contact support.";
+        setError(errorMsg);
       } finally {
         setVerifying(false);
       }

@@ -38,7 +38,7 @@ export default function OverviewReport() {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
-  const [withdraws, setWithdraws] = useState<any[]>([]);
+  const [withdraws, setWithdraws] = useState<{ id: string; amount: number; status: string }[]>([]);
   const [totalWithdrawn, setTotalWithdrawn] = useState(0);
   const [pendingWithdrawTotal, setPendingWithdrawTotal] = useState(0);
 

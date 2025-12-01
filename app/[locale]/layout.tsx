@@ -8,7 +8,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { auth } from "@/auth";
-import { ReactNode } from "react";
 import "../globals.css";
 
 // Fonts

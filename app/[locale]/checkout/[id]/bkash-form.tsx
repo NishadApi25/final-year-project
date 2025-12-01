@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import axios from "axios";
-import ProductPrice from "@/components/shared/product/product-price";
 import { Button } from "@/components/ui/button";
 
 export default function BkashForm({
@@ -13,7 +11,6 @@ export default function BkashForm({
   orderId: string;
   totalPrice: number;
 }) {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -42,9 +39,10 @@ export default function BkashForm({
       } else {
         setError(response.data.message || "Failed to create payment");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Payment error:", err);
-      setError(err.response?.data?.message || "Failed to initiate payment");
+      const errorMsg = err instanceof Error ? err.message : "Failed to initiate payment";
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +70,7 @@ export default function BkashForm({
         <p className="font-semibold mb-2">How to pay with bKash:</p>
         <ol className="list-decimal list-inside space-y-1">
           <li>Enter your bKash registered phone number above</li>
-          <li>Click "Pay with bKash" button</li>
+          <li>Click &quot;Pay with bKash&quot; button</li>
           <li>You will be redirected to bKash payment page</li>
           <li>Complete the payment on bKash</li>
           <li>You will be redirected back to confirm payment</li>

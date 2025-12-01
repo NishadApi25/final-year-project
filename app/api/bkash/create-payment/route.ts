@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import Order from "@/lib/db/models/order.model";
 import { bkash } from "@/lib/bkash";
-import axios from "axios";
 
 /**
  * POST /api/bkash/create-payment
@@ -37,10 +36,11 @@ export async function POST(request: NextRequest) {
       paymentID: payment.paymentID,
       bkashURL: payment.bkashURL,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("bKash create payment error:", error);
+    const errorMsg = error instanceof Error ? error.message : "Failed to create payment";
     return NextResponse.json(
-      { success: false, message: error.message || "Failed to create payment" },
+      { success: false, message: errorMsg },
       { status: 500 }
     );
   }
