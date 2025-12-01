@@ -7,6 +7,7 @@ import { getMessages } from "next-intl/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { ReactNode } from "react";
 import "../globals.css";
 
@@ -56,6 +57,7 @@ export default async function AppLayout({
 
   const currencyCookie = (await cookies()).get("currency");
   const currency = currencyCookie ? currencyCookie.value : "USD";
+  const session = await auth();
 
   return (
     <html
@@ -67,7 +69,7 @@ export default async function AppLayout({
         className={`min-h-screen ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <ClientProviders setting={{ ...setting, currency }}>
+          <ClientProviders setting={{ ...setting, currency }} session={session}>
             {children}
           </ClientProviders>
         </NextIntlClientProvider>

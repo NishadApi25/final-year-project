@@ -120,6 +120,7 @@ export const OrderInputSchema = z.object({
       pricePaid: z.string(),
     })
     .optional(),
+  affiliateUserId: z.string().optional(),
   itemsPrice: Price("Items price"),
   shippingPrice: Price("Shipping price"),
   taxPrice: Price("Tax price"),

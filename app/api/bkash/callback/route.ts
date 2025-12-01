@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server";
+import { connectToDatabase } from "@/lib/db";
+import Order from "@/lib/db/models/order.model";
+import AffiliateEarning from "@/lib/db/models/affiliate-earning.model";
+import { bkash } from "@/lib/bkash";
+import { sendPurchaseReceipt } from "@/emails";
+
+/**
+ * GET /api/bkash/callback?paymentID=xxx
+ * bKash redirects here after user completes/fails payment
+ * Also used for polling payment status
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const paymentID = request.nextUrl.searchParams.get("paymentID");
+
+    if (!paymentID) {
+      return NextResponse.json(
+        { success: false, message: "Missing paymentID" },
+        { status: 400 }
+      );
+    }
+
+    await connectToDatabase();
+
+    // Query payment status from bKash
+    const paymentStatus = await bkash.queryPayment(paymentID);
+
+    if (paymentStatus.statusCode !== "0000") {
+      return NextResponse.json(
+        { success: false, message: "Payment verification failed" },
+        { status: 400 }
+      );
+    }
+
+    const transactionStatus = paymentStatus.transactionStatus;
+
+    if (transactionStatus === "Completed") {
+      // Find order by invoice number (we set this to orderId when creating payment)
+      const orderId = paymentStatus.merchantInvoiceNumber;
+      const order = await Order.findById(orderId).populate<{
+        user: { email: string; name: string };
+        items: any[];
+      }>("user", "email name");
+
+      if (!order) {
+        return NextResponse.json(
+          { success: false, message: "Order not found" },
+          { status: 404 }
+        );
+      }
+
+      if (order.isPaid) {
+        // Already paid
+        return NextResponse.json({
+          success: true,
+          message: "Order already paid",
+          orderId: order._id,
+          status: "Completed",
+        });
+      }
+
+      // Mark order as paid
+      order.isPaid = true;
+      order.paidAt = new Date();
+      order.paymentResult = {
+        id: paymentStatus.paymentID,
+        status: "Completed",
+        email_address: order.user?.email || "",
+        pricePaid: paymentStatus.amount,
+      };
+
+      await order.save();
+
+      // Send receipt email
+      if (order.user?.email) {
+        await sendPurchaseReceipt({ order });
+      }
+
+      // Record affiliate earnings if order came through affiliate link
+      // Get affiliateUserId from order data (should be stored during checkout)
+      const affiliateUserId = (order as any).affiliateUserId;
+      if (affiliateUserId) {
+        const getCommissionPercent = (category?: string) => {
+          if (!category) return 10;
+          const c = category.toLowerCase();
+          if (c.includes("shoe")) return 5;
+          if (c.includes("jean") || c.includes("pant")) return 7;
+          if (c.includes("watch")) return 10;
+          return 10;
+        };
+
+        for (const item of order.items) {
+          const percent = getCommissionPercent(item.category);
+          const commissionAmount =
+            Math.round(((item.price * item.quantity * percent) / 100) * 100) / 100;
+
+          await AffiliateEarning.create({
+            affiliateUserId,
+            orderId: order._id,
+            productId: item.product,
+            orderAmount: item.price * item.quantity,
+            commissionPercent: percent,
+            commissionAmount,
+            status: "confirmed",
+          });
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "Payment processed successfully",
+        orderId: order._id,
+        status: "Completed",
+      });
+    } else if (transactionStatus === "Failed" || transactionStatus === "Cancelled") {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Payment ${transactionStatus.toLowerCase()}`,
+          status: transactionStatus,
+        },
+        { status: 400 }
+      );
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Unknown payment status: ${transactionStatus}`,
+          status: transactionStatus,
+        },
+        { status: 400 }
+      );
+    }
+  } catch (error: any) {
+    console.error("bKash callback error:", error);
+    return NextResponse.json(
+      { success: false, message: error.message || "Callback processing failed" },
+      { status: 500 }
+    );
+  }
+}

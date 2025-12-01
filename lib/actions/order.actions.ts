@@ -229,7 +229,7 @@ async function getTopSalesCategories(date: DateRange, limit = 5) {
 }
 
 // CREATE
-export const createOrder = async (clientSideCart: Cart) => {
+export const createOrder = async (clientSideCart: Cart, affiliateUserId?: string) => {
   try {
     await connectToDatabase();
     const session = await auth();
@@ -237,7 +237,8 @@ export const createOrder = async (clientSideCart: Cart) => {
     // recalculate price and delivery date on the server
     const createdOrder = await createOrderFromCart(
       clientSideCart,
-      session.user.id!
+      session.user.id!,
+      affiliateUserId
     );
     return {
       success: true,
@@ -251,7 +252,8 @@ export const createOrder = async (clientSideCart: Cart) => {
 
 export const createOrderFromCart = async (
   clientSideCart: Cart,
-  userId: string
+  userId: string,
+  affiliateUserId?: string
 ) => {
   const cart = {
     ...clientSideCart,
@@ -272,6 +274,7 @@ export const createOrderFromCart = async (
     taxPrice: cart.taxPrice,
     totalPrice: cart.totalPrice,
     expectedDeliveryDate: cart.expectedDeliveryDate,
+    affiliateUserId: affiliateUserId || undefined,
   });
   return await Order.create(order);
 };

@@ -119,6 +119,11 @@ const CheckoutForm = () => {
     useState<boolean>(false);
 
   const handlePlaceOrder = async () => {
+    // Get affiliateUserId from localStorage if available
+    const affiliateUserId = typeof window !== "undefined" 
+      ? localStorage.getItem("affiliateUserId") || undefined 
+      : undefined;
+
     const res = await createOrder({
       items,
       shippingAddress,
@@ -131,7 +136,7 @@ const CheckoutForm = () => {
       shippingPrice,
       taxPrice,
       totalPrice,
-    });
+    }, affiliateUserId || undefined);
     if (!res.success) {
       toast.error(res.message);
     } else {
