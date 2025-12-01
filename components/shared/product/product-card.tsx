@@ -1,14 +1,13 @@
+"use client";
+
+import { useState } from "react";
+import axios from "axios";
+import AffiliateLinkModal from "../AffiliateLinkModal";
+
 import Image from "next/image";
 import Link from "next/link";
-
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { IProduct } from "@/lib/db/models/product.model";
-
 import { formatNumber, generateId, round2 } from "@/lib/utils";
 import AddToCart from "./add-to-cart";
 import ImageHover from "./image-hover";
@@ -26,6 +25,23 @@ const ProductCard = ({
   hideBorder?: boolean;
   hideAddToCart?: boolean;
 }) => {
+
+  const [open, setOpen] = useState(false);
+  const [affiliateLink, setAffiliateLink] = useState("");
+
+  const generateLink = async () => {
+    try {
+      const res = await axios.post("/api/affiliate/generate-link", {
+        productId: product._id,
+        userId: "testUser", // replace with logged-in user
+      });
+      setAffiliateLink(res.data.link);
+      setOpen(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const ProductImage = () => (
     <Link href={`/product/${product.slug}`}>
       <div className="relative h-52">
@@ -36,19 +52,18 @@ const ProductCard = ({
             alt={product.name}
           />
         ) : (
-          <div className="relative h-52">
-            <Image
-              src={product.images[0]}
-              alt={product.name}
-              fill
-              sizes="80vw"
-              className="object-contain"
-            />
-          </div>
+          <Image
+            src={product.images[0]}
+            alt={product.name}
+            fill
+            sizes="80vw"
+            className="object-contain"
+          />
         )}
       </div>
     </Link>
   );
+
   const ProductDetails = () => (
     <div className="flex-1 space-y-2">
       <p className="font-bold">{product.brand}</p>
@@ -63,6 +78,7 @@ const ProductCard = ({
       >
         {product.name}
       </Link>
+
       <div className="flex gap-2 justify-center">
         <Rating rating={product.avgRating} />
         <span>({formatNumber(product.numReviews)})</span>
@@ -76,8 +92,11 @@ const ProductCard = ({
       />
     </div>
   );
-  const AddButton = () => (
-    <div className="w-full text-center">
+
+  const AddButtons = () => (
+    <div className="w-full text-center space-y-2">
+
+      {/* Buy Now / Add to Cart */}
       <AddToCart
         minimal
         item={{
@@ -94,6 +113,14 @@ const ProductCard = ({
           image: product.images[0],
         }}
       />
+
+      {/* Generate Affiliate Link */}
+      <button
+        onClick={generateLink}
+        className="bg-green-600 text-white w-full py-1 rounded"
+      >
+        Generate Affiliate Link
+      </button>
     </div>
   );
 
@@ -105,24 +132,32 @@ const ProductCard = ({
           <div className="p-3 flex-1 text-center">
             <ProductDetails />
           </div>
-          {!hideAddToCart && <AddButton />}
+          {!hideAddToCart && <AddButtons />}
         </>
+      )}
+
+      {open && (
+        <AffiliateLinkModal link={affiliateLink} onClose={() => setOpen(false)} />
       )}
     </div>
   ) : (
-    <Card className="flex flex-col  ">
+    <Card className="flex flex-col">
       <CardHeader className="p-3">
         <ProductImage />
       </CardHeader>
       {!hideDetails && (
         <>
-          <CardContent className="p-3 flex-1  text-center">
+          <CardContent className="p-3 flex-1 text-center">
             <ProductDetails />
           </CardContent>
           <CardFooter className="p-3">
-            {!hideAddToCart && <AddButton />}
+            {!hideAddToCart && <AddButtons />}
           </CardFooter>
         </>
+      )}
+
+      {open && (
+        <AffiliateLinkModal link={affiliateLink} onClose={() => setOpen(false)} />
       )}
     </Card>
   );
