@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/db";
 import AffiliateEarning from "@/lib/db/models/affiliate-earning.model";
+import Product from "@/lib/db/models/product.model";
 import Order from "@/lib/db/models/order.model";
 
 export async function POST(request: NextRequest) {
@@ -87,9 +88,29 @@ export async function GET(request: NextRequest) {
     if (affiliateUserId) query.affiliateUserId = affiliateUserId;
     if (status) query.status = status;
 
-    const earnings = await AffiliateEarning.find(query)
-      .populate("productId", "name slug image")
-      .sort({ createdAt: -1 });
+    let earnings = await AffiliateEarning.find(query).sort({ createdAt: -1 }).lean();
+
+    // Try to enrich each earning with product info. `productId` is stored as string,
+    // so populate may not work. Fetch product docs where possible to include name/slug/image.
+    const enriched = await Promise.all(
+      earnings.map(async (e: any) => {
+        try {
+          const pid = e.productId;
+          // if productId already an object with name, keep it
+          if (pid && typeof pid === "object" && pid.name) return e;
+          // Attempt to find product by id
+          const prod = await Product.findById(pid).select("name slug image").lean();
+          if (prod) {
+            return { ...e, productId: prod };
+          }
+        } catch (err) {
+          // ignore lookup errors and keep original productId
+          console.warn("Failed to enrich product for earning", e._id, err);
+        }
+        return e;
+      })
+    );
+    earnings = enriched;
 
     // Calculate total earnings
     const totalEarnings = earnings.reduce((sum, e) => sum + e.commissionAmount, 0);

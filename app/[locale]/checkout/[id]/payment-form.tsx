@@ -144,6 +144,7 @@ export default function OrderDetailsForm({
               <BkashForm
                 orderId={order._id}
                 totalPrice={order.totalPrice}
+                currency={"USD"}
               />
             )}
 

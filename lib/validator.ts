@@ -61,6 +61,12 @@ export const ProductInputSchema = z.object({
     .number()
     .int()
     .nonnegative("Number of sales must be a non-negative number"),
+  commission: z
+    .coerce
+    .number()
+    .min(0, "Commission must be at least 0")
+    .max(100, "Commission cannot exceed 100")
+    .default(0),
 });
 
 export const ProductUpdateSchema = ProductInputSchema.extend({

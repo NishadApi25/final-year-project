@@ -26,31 +26,29 @@ export default function BkashVerifyClient({
           `/api/bkash/callback?paymentID=${paymentID}`
         );
 
-        if (response.data.success) {
-          if (response.data.paymentStatus === "Completed") {
-            setResult({
-              success: true,
-              message: "Payment successful!",
-              paymentID,
-            });
-            // Redirect to order page after 2 seconds
-            setTimeout(() => {
-              router.push(`/account/orders`);
-            }, 2000);
-          } else if (
-            response.data.paymentStatus === "Failed" ||
-            response.data.paymentStatus === "Cancelled"
-          ) {
-            setError(
-              `Payment ${response.data.paymentStatus.toLowerCase()}. Please try again.`
-            );
-          } else {
-            setError(
-              `Payment status: ${response.data.paymentStatus}. Please contact support.`
-            );
-          }
+        // Backend returns `{ success: boolean, status?: string, message?: string }`
+        const ok = response.data?.success;
+        const status = response.data?.status || response.data?.paymentStatus;
+
+        if (!ok) {
+          setError(response.data?.message || "Payment verification failed");
+          return;
+        }
+
+        if (status === "Completed") {
+          setResult({
+            success: true,
+            message: "Payment successful!",
+            paymentID,
+          });
+          // Redirect to order page after 2 seconds
+          setTimeout(() => {
+            router.push(`/account/orders`);
+          }, 2000);
+        } else if (status === "Failed" || status === "Cancelled") {
+          setError(`Payment ${String(status).toLowerCase()}. Please try again.`);
         } else {
-          setError(response.data.message || "Payment verification failed");
+          setError(`Payment status: ${String(status)}. Please contact support.`);
         }
       } catch (err: unknown) {
         console.error("Verification error:", err);

@@ -224,4 +224,89 @@ export const bkash = {
 
     return data;
   },
+
+  /**
+   * Send OTP to customer phone for payment verification
+   */
+  sendOTP: async function (customerPhone: string) {
+    const token = await getToken();
+
+    // Mock mode: return a mock OTP
+    if (MOCK_MODE) {
+      const mockOtp = "123456"; // Fixed OTP for testing in mock mode
+      console.log(`[bKash Mock] OTP sent to ${customerPhone}: ${mockOtp}`);
+      return {
+        statusCode: "0000",
+        statusMessage: "OTP sent successfully",
+        customerMsisdn: customerPhone,
+        mockOtp: mockOtp, // Only in mock mode for testing
+      };
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/v1.2.0/tokenized/checkout/send/otp`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+          "X-APP-Key": BKASH_APP_KEY,
+        },
+        body: JSON.stringify({
+          customerMsisdn: customerPhone.replace(/\D/g, ""), // Remove non-digits
+        }),
+      }
+    );
+
+    const data = await response.json();
+    if (data.statusCode !== "0000") {
+      throw new Error(`bKash send OTP error: ${data.statusMessage || "Unknown error"}`);
+    }
+
+    return data;
+  },
+
+  /**
+   * Verify OTP sent to customer
+   */
+  verifyOTP: async function (customerPhone: string, otp: string) {
+    const token = await getToken();
+
+    // Mock mode: accept the fixed OTP 123456
+    if (MOCK_MODE) {
+      if (otp === "123456") {
+        console.log(`[bKash Mock] OTP verified for ${customerPhone}`);
+        return {
+          statusCode: "0000",
+          statusMessage: "OTP verified successfully",
+          customerMsisdn: customerPhone,
+        };
+      } else {
+        throw new Error("Invalid OTP. Use 123456 for testing.");
+      }
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/v1.2.0/tokenized/checkout/verify/otp`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token,
+          "X-APP-Key": BKASH_APP_KEY,
+        },
+        body: JSON.stringify({
+          customerMsisdn: customerPhone.replace(/\D/g, ""), // Remove non-digits
+          otp: otp,
+        }),
+      }
+    );
+
+    const data = await response.json();
+    if (data.statusCode !== "0000") {
+      throw new Error(`bKash verify OTP error: ${data.statusMessage || "Unknown error"}`);
+    }
+
+    return data;
+  },
 };

@@ -19,11 +19,13 @@ const ProductCard = ({
   hideBorder = false,
   hideDetails = false,
   hideAddToCart = false,
+  showAffiliateButton = false,
 }: {
   product: IProduct;
   hideDetails?: boolean;
   hideBorder?: boolean;
   hideAddToCart?: boolean;
+  showAffiliateButton?: boolean; // new: explicitly control affiliate button visibility
 }) => {
   const [open, setOpen] = useState(false);
   const [affiliateLink, setAffiliateLink] = useState("");
@@ -108,7 +110,7 @@ const ProductCard = ({
         }}
       />
 
-      {isAffiliate && (
+      {isAffiliate && showAffiliateButton && (
         <button onClick={generateLink} className="border-2 border-yellow-400 text-white bg-red-600 hover:bg-red-700 w-full py-1 rounded font-semibold">
           Generate Affiliate Link
         </button>

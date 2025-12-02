@@ -130,7 +130,7 @@ export default function OverviewReport() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
-            <p className="text-xs text-gray-500">10% commission</p>
+            <p className="text-xs text-gray-500">{getCommissionSummary(earnings)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -299,7 +299,7 @@ export default function OverviewReport() {
                   <tr className="border-b">
                     <th className="text-left py-2">Product</th>
                     <th className="text-left py-2">Order Amount</th>
-                    <th className="text-left py-2">Commission (10%)</th>
+                    <th className="text-left py-2">Commission</th>
                     <th className="text-left py-2">Status</th>
                     <th className="text-left py-2">Date</th>
                   </tr>
@@ -307,10 +307,11 @@ export default function OverviewReport() {
                 <tbody>
                   {earnings.map((earning) => (
                     <tr key={earning._id} className="border-b">
-                      <td className="py-2">{earning.productId.name}</td>
+                      <td className="py-2">{(typeof earning.productId === 'string') ? 'Product (ID: ' + earning.productId + ')' : (earning.productId?.name || 'Unknown product')}</td>
                       <td className="py-2">${earning.orderAmount.toFixed(2)}</td>
                       <td className="py-2 font-semibold">
                         ${earning.commissionAmount.toFixed(2)}
+                        <div className="text-xs text-gray-500">{earning.commissionPercent}%</div>
                       </td>
                       <td className="py-2">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
@@ -338,6 +339,17 @@ export default function OverviewReport() {
       )}
     </div>
   );
+}
+
+// Return a short commission summary string: if all earnings share same percent show "X% commission", otherwise "Commission varies"
+function getCommissionSummary(earnings: any[]) {
+  if (!earnings || earnings.length === 0) return "";
+  const percents = new Set(earnings.map((e) => Number(e.commissionPercent || 0)));
+  if (percents.size === 1) {
+    const val = Array.from(percents)[0];
+    return `${val}% commission`;
+  }
+  return "Commission varies";
 }
 
 // Helper function to process daily data
@@ -392,11 +404,11 @@ function processProductData(
     }
   >();
 
-  earnings.forEach((earning) => {
-    const productId = earning.productId._id || earning.productId.name;
+    earnings.forEach((earning) => {
+    const productId = typeof earning.productId === 'string' ? earning.productId : (earning.productId._id || earning.productId.name || String(earning._id));
     const existing = productMap.get(productId) || {
       productId,
-      productName: earning.productId.name,
+      productName: typeof earning.productId === 'string' ? ('Product (ID: ' + earning.productId + ')') : (earning.productId.name || 'Unknown product'),
       sales: 0,
       conversions: 0,
       totalEarnings: 0,
