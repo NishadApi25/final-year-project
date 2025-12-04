@@ -310,7 +310,7 @@ export default function BkashForm({
           <p className="font-semibold mb-2">How to pay with bKash:</p>
           <ol className="list-decimal list-inside space-y-1">
             <li>Enter your bKash registered phone number</li>
-            <li>Click "Send OTP" to receive a verification code</li>
+            <li>Click &quot;Send OTP&quot; to receive a verification code</li>
             <li>Enter the OTP and verify</li>
             <li>You will be redirected to bKash payment page</li>
             <li>Complete the payment on bKash</li>

@@ -93,11 +93,11 @@ export async function GET(request: NextRequest) {
     // Try to enrich each earning with product info. `productId` is stored as string,
     // so populate may not work. Fetch product docs where possible to include name/slug/image.
     const enriched = await Promise.all(
-      earnings.map(async (e: any) => {
+      earnings.map(async (e) => {
         try {
           const pid = e.productId;
           // if productId already an object with name, keep it
-          if (pid && typeof pid === "object" && pid.name) return e;
+          if (pid && typeof pid === "object" && "name" in pid) return e;
           // Attempt to find product by id
           const prod = await Product.findById(pid).select("name slug image").lean();
           if (prod) {
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
         return e;
       })
     );
-    earnings = enriched;
+    earnings = enriched as typeof earnings;
 
     // Calculate total earnings
     const totalEarnings = earnings.reduce((sum, e) => sum + e.commissionAmount, 0);

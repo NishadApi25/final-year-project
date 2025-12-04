@@ -66,7 +66,7 @@ export const ProductInputSchema = z.object({
     .number()
     .min(0, "Commission must be at least 0")
     .max(100, "Commission cannot exceed 100")
-    .default(0),
+    .optional(),
 });
 
 export const ProductUpdateSchema = ProductInputSchema.extend({
@@ -99,7 +99,8 @@ export const ShippingAddressSchema = z.object({
   street: z.string().min(1, "Address is required"),
   city: z.string().min(1, "City is required"),
   postalCode: z.string().min(1, "Postal code is required"),
-  province: z.string().min(1, "Province is required"),
+  // Province/state is optional because many countries don't use provinces
+  province: z.string().optional(),
   phone: z.string().min(1, "Phone number is required"),
   country: z.string().min(1, "Country is required"),
 });

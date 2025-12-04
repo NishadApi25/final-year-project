@@ -47,5 +47,6 @@ export default auth((req) => {
 
 export const config = {
   // Skip all paths that should not be internationalized
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  // Explicitly exclude auth API from middleware so session endpoint is accessible
+  matcher: ["/((?!api/auth|api|_next|.*\\..*).*)"],
 };

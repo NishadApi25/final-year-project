@@ -6,54 +6,51 @@ Quick, repo-specific guidance for AI coding agents to be productive immediately.
 ## Quickstart (commands)
 - Dev: `npm run dev` (runs `next dev -p 4007`).
 - Build: `npm run build` (uses `--turbopack`).
-- Start: `npm run start`.
-- Seed DB: `npm run seed` → `npx tsx ./lib/db/seed.ts`.
-- Lint: `npm run lint`.
+<!-- Copilot/AI agent instructions for the Luxora e‑commerce app (concise) -->
 
-## Big Picture
-- Next.js App Router + TypeScript + Tailwind. Routes live under `app/[locale]` and use route groups named in parentheses (e.g., `(auth)`, `(home)`, `(root)`).
-- Server-only logic and integrations live in `lib/` (for example `lib/db/*`, `lib/paypal.ts`, `lib/bkash.ts`).
-- UI primitives: `components/ui/*`; higher-level app components: `components/shared/*`.
+## Purpose
+Short, actionable guidance to get an AI coding agent productive in this repo.
 
-## Key Patterns & Examples
-- Localization: top-level dynamic segment `app/[locale]` and `next-intl` usage — preserve folder structure when adding routes.
-- Route groups: use folders like `app/[locale]/(auth)/sign-in/page.tsx` for grouping UI and middleware concerns.
-- Server actions: placed in `lib/actions/*.ts` and typically start with `"use server"`.
-  - Example: `lib/actions/order.actions.ts` uses `createOrder`, calls `connectToDatabase()` and triggers `revalidatePath`.
-- Database: uses MongoDB + Mongoose in `lib/db/*`. Call `connectToDatabase()` before model operations.
-- Client vs Server components: files with `-client.tsx` are explicit client components. Prefer server components unless client interactivity is required. Add `"use client"` only when necessary.
-- State: client state uses `zustand` stores under `hooks/*` (e.g., `use-cart-store.ts`).
+## Quick commands
+- Dev: npm run dev  (starts Next.js on port 4007)
+- Build: npm run build  (uses --turbopack)
+- Start: npm run start
+- Seed DB: npm run seed  (runs `npx tsx ./lib/db/seed.ts`)
+- Email preview: npm run email  (starts @react-email preview; used for email templates under `emails/`)
+- Lint: npm run lint
 
-## Integration & External Dependencies
-- Payments: `lib/paypal.ts`, `lib/bkash.ts`, and `lib/stripe` code are centralized under `lib/`.
-- Email templates: `emails/*.tsx` (uses `@react-email` / `resend`).
-- Auth: `auth.ts` and `auth.config.ts` with `next-auth` and `@auth/mongodb-adapter`.
+## Big picture (what to know first)
+- Next.js App Router + TypeScript + Tailwind. Top-level locale segment: `app/[locale]` — route groups are used via parentheses (e.g. `(auth)`, `(home)`, `(root)`). Preserve this structure when adding routes.
+- Server-only logic lives in `lib/` (payments, email, utilities) and `lib/actions/*` (server actions). Database models live in `lib/db/models/*` and DB helpers in `lib/db`.
+- UI primitives are under `components/ui/*`; higher-level app components live in `components/shared/*`. Client-only components are explicit (`-client.tsx`).
 
-## Implementation Guidance (do this, specifically)
-- When authoring new server actions:
-  - Add `"use server"` at top.
-  - Call `connectToDatabase()` before DB usage.
-  - Return structured responses: `{ success: boolean, message?: string, data?: any }`.
-- When changing server data, search for and update calls to `revalidatePath` in `lib/actions/*`.
-- Avoid importing server-only modules into client components.
+## Project-specific patterns & conventions
+- Server actions: placed in `lib/actions/*.ts` and must start with "use server". Typical flow: call `connectToDatabase()` (see `lib/db/index.ts`), perform model operations, then call `revalidatePath()` when you change server-rendered data.
+- Database: uses Mongoose. Always call `connectToDatabase()` before DB access. Models are under `lib/db/models/*` (e.g., `order.model.ts`, `product.model.ts`).
+- Payments & external integrations: centralized in `lib/` — see `lib/paypal.ts`, `lib/bkash.ts`, and `lib/stripe` usages. Mimic existing error handling patterns (see `formatError` in `lib/utils.ts`).
+- Localization: uses `next-intl`; new routes must live under the `app/[locale]` segment.
+- State: client state uses `zustand` in `hooks/*` (e.g., `use-cart-store.ts`).
 
-## Important Files to Inspect
-- Routes: `app/[locale]/...` (route groups like `(auth)`).
-- Server logic: `lib/actions/*.ts` and `lib/*.ts` (payments, utils).
-- DB: `lib/db/client.ts`, `lib/db/index.ts`, `lib/db/models/*`.
-- UI: `components/ui/*` and `components/shared/*`.
+## Files to inspect for examples
+- `lib/actions/order.actions.ts` — server action patterns, DB calls, `revalidatePath()` usage, emails and affiliate logic.
+- `lib/db/index.ts` — `connectToDatabase()` (must be called before DB ops).
+- `lib/paypal.ts`, `lib/bkash.ts` — payment integration patterns.
+- `components/ui/*` and `components/shared/*` — UI primitives and composition.
+- `emails/*.tsx` — email templates using `@react-email` and the preview server.
 
-## Environment Variables (check before running)
-- `MONGODB_URI` (DB). `NEXTAUTH_*`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (auth).
-- `PAYPAL_CLIENT_ID`, `PAYPAL_APP_SECRET`, `PAYPAL_API_URL` (PayPal).
-- `BKASH_APP_KEY`, `BKASH_APP_SECRET`, `BKASH_API_URL`, `BKASH_CALLBACK_URL` (bKash).
-- Keep non-`NEXT_PUBLIC_` secrets server-side.
+## Environment & secrets (what you must set)
+- Required: MONGODB_URI, NEXTAUTH_* (AUTH_SECRET, GOOGLE keys), PAYPAL_*, STRIPE_*, RESEND API key, BKASH_*.
+- Local dev: app runs at http://localhost:4007 by default (see `.env.local` for example values).
 
-## Small Notes / Do Not Change
-- Do not rework the `app/[locale]` layout or route group names without broad refactor — many links assume these paths.
+## Do / Don't (practical rules)
+- Do: keep server-only modules out of client components. Prefer server components unless UI interaction requires client state.
+- Do: follow existing response shapes for server actions ({ success, message, data }) to keep callers consistent.
+- Don't: rename or move the `app/[locale]` layout or route-group folders without updating every link and middleware — the router structure is relied upon.
 
-## Next Steps / Asking for Feedback
-If anything here is unclear or you want extra detail (tests, CI, deploy), tell me which area to expand.
+## Quick troubleshooting
+- If pages error on DB access, verify `connectToDatabase()` is called and MONGODB_URI is set.
+- If emails don't render, run `npm run email` to view templates locally.
 
 ---
-Updated: concise agent guidance with repo examples. Please review and tell me what to expand or keep.
+If anything above is unclear or you'd like more examples/tests/CI recommendations, tell me which section to expand.
+If anything here is unclear or you want extra detail (tests, CI, deploy), tell me which area to expand.

@@ -25,6 +25,7 @@ interface AffiliateEarning {
   };
   orderId: string;
   commissionAmount: number;
+  commissionPercent: number;
   orderAmount: number;
   status: string;
   createdAt: Date;
@@ -38,7 +39,6 @@ export default function OverviewReport() {
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [totalClicks, setTotalClicks] = useState(0);
   const [conversionRate, setConversionRate] = useState(0);
-  const [withdraws, setWithdraws] = useState<{ id: string; amount: number; status: string }[]>([]);
   const [totalWithdrawn, setTotalWithdrawn] = useState(0);
   const [pendingWithdrawTotal, setPendingWithdrawTotal] = useState(0);
 
@@ -65,7 +65,6 @@ export default function OverviewReport() {
         const withdrawRes = await axios.get(
           `/api/affiliate/withdraw?affiliateUserId=${session.user.id}`
         );
-        setWithdraws(withdrawRes.data.records || []);
         setTotalWithdrawn(withdrawRes.data.totalWithdrawn || 0);
         setPendingWithdrawTotal(withdrawRes.data.pendingTotal || 0);
 
@@ -236,7 +235,6 @@ export default function OverviewReport() {
                             alert("Withdraw request created. Status: pending.");
                             // refresh withdraws
                             const w = await axios.get(`/api/affiliate/withdraw?affiliateUserId=${session.user.id}`);
-                            setWithdraws(w.data.records || []);
                             setTotalWithdrawn(w.data.totalWithdrawn || 0);
                             setPendingWithdrawTotal(w.data.pendingTotal || 0);
                           }
@@ -342,7 +340,7 @@ export default function OverviewReport() {
 }
 
 // Return a short commission summary string: if all earnings share same percent show "X% commission", otherwise "Commission varies"
-function getCommissionSummary(earnings: any[]) {
+function getCommissionSummary(earnings: { commissionPercent: number | string }[]) {
   if (!earnings || earnings.length === 0) return "";
   const percents = new Set(earnings.map((e) => Number(e.commissionPercent || 0)));
   if (percents.size === 1) {

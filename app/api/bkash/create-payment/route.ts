@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // Determine currency and convert to BDT only when needed
     await connectToDatabase();
     const setting = await Setting.findOne();
-    const bdtCurrency = setting?.availableCurrencies?.find((c: any) => c.code === "BDT");
+    const bdtCurrency = setting?.availableCurrencies?.find((c: { code: string }) => c.code === "BDT");
     const convertRate = bdtCurrency?.convertRate || 110; // fallback to 110 if not configured
 
     let amountInBDT: number;

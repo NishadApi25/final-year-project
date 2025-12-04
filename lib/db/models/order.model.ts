@@ -39,7 +39,8 @@ const orderSchema = new Schema<IOrder>(
       city: { type: String, required: true },
       postalCode: { type: String, required: true },
       country: { type: String, required: true },
-      province: { type: String, required: true },
+      // province is optional because many countries do not use provinces/states
+      province: { type: String },
       phone: { type: String, required: true },
     },
     expectedDeliveryDate: { type: Date, required: true },

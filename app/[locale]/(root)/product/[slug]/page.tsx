@@ -1,6 +1,7 @@
 
 import { auth } from "@/auth";
 import { getProductBySlug, getRelatedProductsByCategory } from "@/lib/actions/product.actions";
+import { notFound } from "next/navigation";
 import AddToCart from "@/components/shared/product/add-to-cart";
 import { Card, CardContent } from "@/components/ui/card";
 import ProductGallery from "@/components/shared/product/product-gallery";
@@ -45,6 +46,7 @@ export default async function ProductDetails(props: {
   const session = await auth();
 
   const product = await getProductBySlug(slug);
+  if (!product) return notFound();
   const relatedProducts = await getRelatedProductsByCategory({
     category: product.category,
     productId: product._id,

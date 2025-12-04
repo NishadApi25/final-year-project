@@ -2,7 +2,7 @@
 
 import useCartSidebar from "@/hooks/use-cart-sidebar";
 import { ClientSetting } from "@/types";
-import React from "react";
+import React, { useEffect } from "react";
 import type { Session } from "next-auth";
 import { Toaster } from "sonner";
 import AppInitializer from "./app-initializer";
@@ -21,28 +21,40 @@ export default function ClientProviders({
 }) {
   const visible = useCartSidebar();
 
+  useEffect(() => {
+    // Listen for session fetch errors on SessionProvider
+    const handleFetchError = (error: Event) => {
+      if (error instanceof ErrorEvent && error.message.includes("fetch")) {
+        console.warn("Session fetch failed, continuing without session:", error);
+      }
+    };
+
+    window.addEventListener("error", handleFetchError);
+    return () => window.removeEventListener("error", handleFetchError);
+  }, []);
+
   return (
-      <AppInitializer setting={setting}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme={
-            setting?.common?.defaultTheme
-              ? setting.common.defaultTheme.toLowerCase()
-              : "light"
-          }
-        >
-          <SessionProvider session={session}>
-            {visible ? (
-              <div className="flex min-h-screen">
-                <div className="flex-1 overflow-hidden">{children}</div>
-                <CartSidebar />
-              </div>
-            ) : (
-              <div>{children}</div>
-            )}
-            <Toaster />
-          </SessionProvider>
-        </ThemeProvider>
-      </AppInitializer>
+    <AppInitializer setting={setting}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme={
+          setting?.common?.defaultTheme
+            ? setting.common.defaultTheme.toLowerCase()
+            : "light"
+        }
+      >
+        <SessionProvider session={session} refetchInterval={5 * 60}>
+          {visible ? (
+            <div className="flex min-h-screen">
+              <div className="flex-1 overflow-hidden">{children}</div>
+              <CartSidebar />
+            </div>
+          ) : (
+            <div>{children}</div>
+          )}
+          <Toaster />
+        </SessionProvider>
+      </ThemeProvider>
+    </AppInitializer>
   );
 }
