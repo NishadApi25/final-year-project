@@ -1,6 +1,6 @@
 "use client";
-
-import { useState } from "react";
+"user client"
+import { useState, useEffect } from "react";
 
 interface Props {
   link: string;
@@ -9,11 +9,22 @@ interface Props {
 
 export default function AffiliateLinkModal({ link, onClose }: Props) {
   const [copied, setCopied] = useState(false);
+  const [isBrowser, setIsBrowser] = useState(false);
+
+  // Check if we are in the browser (not SSR)
+  useEffect(() => {
+    setIsBrowser(true);
+  }, []);
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (isBrowser && navigator.clipboard) {
+      navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      // Handle case where clipboard is not available (fallback)
+      alert("Clipboard API is not available.");
+    }
   };
 
   return (
