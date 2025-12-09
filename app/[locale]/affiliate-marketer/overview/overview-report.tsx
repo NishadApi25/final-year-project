@@ -1,13 +1,24 @@
-// pages/affiliate-marketer/overview/overview-report.tsx
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
-import axios from "axios";
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Bar, ComposedChart } from "recharts";
-import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import useSettingStore from "@/hooks/use-setting-store";
+import { round2 } from "@/lib/utils";
+import axios from "axios";
 import { Loader } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import {
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  Legend,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 interface AffiliateClick {
   _id: string;
@@ -17,12 +28,14 @@ interface AffiliateClick {
 
 interface AffiliateEarning {
   _id: string;
-  productId: {
-    _id?: string;
-    name: string;
-    slug: string;
-    image: string;
-  };
+  productId:
+    | {
+        _id?: string;
+        name: string;
+        slug: string;
+        image: string;
+      }
+    | string;
   orderId: string;
   commissionAmount: number;
   commissionPercent: number;
@@ -33,6 +46,8 @@ interface AffiliateEarning {
 
 export default function OverviewReport() {
   const { data: session } = useSession();
+  const { getCurrency } = useSettingStore();
+  const currency = getCurrency();
   const [clicks, setClicks] = useState<AffiliateClick[]>([]);
   const [earnings, setEarnings] = useState<AffiliateEarning[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,8 +57,17 @@ export default function OverviewReport() {
   const [totalWithdrawn, setTotalWithdrawn] = useState(0);
   const [pendingWithdrawTotal, setPendingWithdrawTotal] = useState(0);
 
+  // Format number according to currency
+  const formatPrice = (amount: number) =>
+    new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency.code,
+      currencyDisplay: "narrowSymbol",
+    }).format(round2(amount * currency.convertRate));
+
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
+
     async function fetchData() {
       if (!session?.user?.id) return;
       try {
@@ -68,7 +92,7 @@ export default function OverviewReport() {
         setTotalWithdrawn(withdrawRes.data.totalWithdrawn || 0);
         setPendingWithdrawTotal(withdrawRes.data.pendingTotal || 0);
 
-        // Calculate conversion rate using unique orders count returned by earnings API
+        // Conversion rate
         const clicksCount = clicksRes.data.clicks.length || 0;
         const uniqueOrders = earningsRes.data.uniqueOrders || 0;
         if (clicksCount > 0) {
@@ -85,20 +109,20 @@ export default function OverviewReport() {
       }
     }
 
-    // initial fetch
     fetchData();
-    // poll every 10 seconds to show clicks/earnings nearly instantly
     timer = setInterval(fetchData, 10000);
-
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [session?.user?.id]);
+  }, [session?.user?.id, currency]);
 
-  // Prepare data for chart (both earnings and click counts)
+  // Chart data
   const dailyData = processDailyData(clicks, earnings);
   const productData = processProductData(earnings);
-  const availableToWithdraw = Math.max(0, totalEarnings - totalWithdrawn - pendingWithdrawTotal);
+  const availableToWithdraw = Math.max(
+    0,
+    totalEarnings - totalWithdrawn - pendingWithdrawTotal
+  );
 
   if (loading) {
     return (
@@ -123,18 +147,28 @@ export default function OverviewReport() {
             <p className="text-xs text-gray-500">All time</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Earnings
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
-            <p className="text-xs text-gray-500">{getCommissionSummary(earnings)}</p>
+            <div className="text-3xl font-bold">
+              {formatPrice(totalEarnings)}
+            </div>
+            <p className="text-xs text-gray-500">
+              {getCommissionSummary(earnings)}
+            </p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Conversion Rate
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{conversionRate}%</div>
@@ -143,7 +177,7 @@ export default function OverviewReport() {
         </Card>
       </div>
 
-      {/* Chart + Summary (left: earnings+clicks chart, right: concise summary) */}
+      {/* Chart + Summary */}
       {dailyData.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="lg:col-span-3">
@@ -158,10 +192,23 @@ export default function OverviewReport() {
                     <XAxis dataKey="date" />
                     <YAxis yAxisId="left" />
                     <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
+                    <Tooltip formatter={(value: any) => formatPrice(value)} />
                     <Legend />
-                    <Bar yAxisId="right" dataKey="clicks" fill="#cfcfcf" name="Clicks" />
-                    <Line yAxisId="left" type="monotone" dataKey="earnings" stroke="#2ecc71" name="Earnings ($)" strokeWidth={2} dot={{ r: 2 }} />
+                    <Bar
+                      yAxisId="right"
+                      dataKey="clicks"
+                      fill="#cfcfcf"
+                      name="Clicks"
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="earnings"
+                      stroke="#2ecc71"
+                      name={`Earnings (${currency.symbol})`}
+                      strokeWidth={2}
+                      dot={{ r: 2 }}
+                    />
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -176,15 +223,21 @@ export default function OverviewReport() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-500">Total Items Dispatched</div>
+                    <div className="text-sm text-gray-500">
+                      Total Items Dispatched
+                    </div>
                     <div className="font-bold">{earnings.length}</div>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">Total Earnings</div>
-                    <div className="font-bold">${totalEarnings.toFixed(2)}</div>
+                    <div className="font-bold">
+                      {formatPrice(totalEarnings)}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-500">Total Ordered Items</div>
+                    <div className="text-sm text-gray-500">
+                      Total Ordered Items
+                    </div>
                     <div className="font-bold">{earnings.length}</div>
                   </div>
                   <div className="flex justify-between items-center">
@@ -197,15 +250,23 @@ export default function OverviewReport() {
                   </div>
                   <div className="flex justify-between items-center border-t pt-3">
                     <div className="text-sm text-gray-500">Withdrawn</div>
-                    <div className="font-bold">${totalWithdrawn.toFixed(2)}</div>
+                    <div className="font-bold">
+                      {formatPrice(totalWithdrawn)}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <div className="text-sm text-gray-500">Pending Withdraw</div>
-                    <div className="font-bold">${pendingWithdrawTotal.toFixed(2)}</div>
+                    <div className="text-sm text-gray-500">
+                      Pending Withdraw
+                    </div>
+                    <div className="font-bold">
+                      {formatPrice(pendingWithdrawTotal)}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <div className="text-sm text-gray-500">Available</div>
-                    <div className="font-bold">${availableToWithdraw.toFixed(2)}</div>
+                    <div className="font-bold">
+                      {formatPrice(availableToWithdraw)}
+                    </div>
                   </div>
                   <div className="pt-3">
                     <button
@@ -217,24 +278,34 @@ export default function OverviewReport() {
                           return;
                         }
                         const input = prompt(
-                          `Enter amount to withdraw (max ${availableToWithdraw.toFixed(2)})`,
-                          availableToWithdraw.toFixed(2)
+                          `Enter amount to withdraw (max ${round2(
+                            availableToWithdraw
+                          )})`,
+                          round2(availableToWithdraw).toString()
                         );
                         if (!input) return;
                         const amount = Number(input);
-                        if (isNaN(amount) || amount <= 0 || amount > availableToWithdraw) {
+                        if (
+                          isNaN(amount) ||
+                          amount <= 0 ||
+                          amount > availableToWithdraw
+                        ) {
                           alert("Invalid amount");
                           return;
                         }
                         try {
-                          const res = await axios.post(`/api/affiliate/withdraw`, {
-                            affiliateUserId: session.user.id,
-                            amount,
-                          });
+                          const res = await axios.post(
+                            `/api/affiliate/withdraw`,
+                            {
+                              affiliateUserId: session.user.id,
+                              amount,
+                            }
+                          );
                           if (res.data.success) {
                             alert("Withdraw request created. Status: pending.");
-                            // refresh withdraws
-                            const w = await axios.get(`/api/affiliate/withdraw?affiliateUserId=${session.user.id}`);
+                            const w = await axios.get(
+                              `/api/affiliate/withdraw?affiliateUserId=${session.user.id}`
+                            );
                             setTotalWithdrawn(w.data.totalWithdrawn || 0);
                             setPendingWithdrawTotal(w.data.pendingTotal || 0);
                           }
@@ -269,10 +340,14 @@ export default function OverviewReport() {
                 >
                   <div>
                     <p className="font-semibold">{product.productName}</p>
-                    <p className="text-sm text-gray-500">{product.sales} sales</p>
+                    <p className="text-sm text-gray-500">
+                      {product.sales} sales
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold">${product.totalEarnings.toFixed(2)}</p>
+                    <p className="font-bold">
+                      {formatPrice(product.totalEarnings)}
+                    </p>
                     <p className="text-sm text-gray-500">
                       {product.conversions} conversions
                     </p>
@@ -305,11 +380,19 @@ export default function OverviewReport() {
                 <tbody>
                   {earnings.map((earning) => (
                     <tr key={earning._id} className="border-b">
-                      <td className="py-2">{(typeof earning.productId === 'string') ? 'Product (ID: ' + earning.productId + ')' : (earning.productId?.name || 'Unknown product')}</td>
-                      <td className="py-2">${earning.orderAmount.toFixed(2)}</td>
+                      <td className="py-2">
+                        {typeof earning.productId === "string"
+                          ? "Product (ID: " + earning.productId + ")"
+                          : earning.productId?.name || "Unknown product"}
+                      </td>
+                      <td className="py-2">
+                        {formatPrice(earning.orderAmount)}
+                      </td>
                       <td className="py-2 font-semibold">
-                        ${earning.commissionAmount.toFixed(2)}
-                        <div className="text-xs text-gray-500">{earning.commissionPercent}%</div>
+                        {formatPrice(earning.commissionAmount)}
+                        <div className="text-xs text-gray-500">
+                          {earning.commissionPercent}%
+                        </div>
                       </td>
                       <td className="py-2">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
@@ -331,7 +414,9 @@ export default function OverviewReport() {
       {earnings.length === 0 && clicks.length === 0 && (
         <Card>
           <CardContent className="py-8 text-center">
-            <p className="text-gray-500">No data yet. Start sharing your affiliate link!</p>
+            <p className="text-gray-500">
+              No data yet. Start sharing your affiliate link!
+            </p>
           </CardContent>
         </Card>
       )}
@@ -339,10 +424,14 @@ export default function OverviewReport() {
   );
 }
 
-// Return a short commission summary string: if all earnings share same percent show "X% commission", otherwise "Commission varies"
-function getCommissionSummary(earnings: { commissionPercent: number | string }[]) {
+// Commission summary
+function getCommissionSummary(
+  earnings: { commissionPercent: number | string }[]
+) {
   if (!earnings || earnings.length === 0) return "";
-  const percents = new Set(earnings.map((e) => Number(e.commissionPercent || 0)));
+  const percents = new Set(
+    earnings.map((e) => Number(e.commissionPercent || 0))
+  );
   if (percents.size === 1) {
     const val = Array.from(percents)[0];
     return `${val}% commission`;
@@ -350,7 +439,7 @@ function getCommissionSummary(earnings: { commissionPercent: number | string }[]
   return "Commission varies";
 }
 
-// Helper function to process daily data
+// Daily chart data
 function processDailyData(
   clicks: AffiliateClick[],
   earnings: AffiliateEarning[]
@@ -360,31 +449,34 @@ function processDailyData(
 
   earnings.forEach((earning) => {
     const date = new Date(earning.createdAt).toLocaleDateString();
-    const current = earningsMap.get(date) || 0;
-    earningsMap.set(date, current + earning.commissionAmount);
+    earningsMap.set(
+      date,
+      (earningsMap.get(date) || 0) + earning.commissionAmount
+    );
   });
 
   clicks.forEach((c) => {
     const date = new Date(c.clickedAt).toLocaleDateString();
-    const current = clicksMap.get(date) || 0;
-    clicksMap.set(date, current + 1);
+    clicksMap.set(date, (clicksMap.get(date) || 0) + 1);
   });
 
-  const allDates = new Set<string>([...earningsMap.keys(), ...clicksMap.keys()]);
-
+  const allDates = new Set<string>([
+    ...earningsMap.keys(),
+    ...clicksMap.keys(),
+  ]);
   const result = Array.from(allDates).map((date) => ({
     date,
     earnings: earningsMap.get(date) || 0,
     clicks: clicksMap.get(date) || 0,
   }));
 
-  return result.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return result.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 }
 
-// Helper function to process product data
-function processProductData(
-  earnings: AffiliateEarning[]
-): Array<{
+// Product data
+function processProductData(earnings: AffiliateEarning[]): Array<{
   productId: string;
   productName: string;
   sales: number;
@@ -402,11 +494,20 @@ function processProductData(
     }
   >();
 
-    earnings.forEach((earning) => {
-    const productId = typeof earning.productId === 'string' ? earning.productId : (earning.productId._id || earning.productId.name || String(earning._id));
+  earnings.forEach((earning) => {
+    const productId =
+      typeof earning.productId === "string"
+        ? earning.productId
+        : earning.productId._id ||
+          earning.productId.name ||
+          String(earning._id);
+
     const existing = productMap.get(productId) || {
       productId,
-      productName: typeof earning.productId === 'string' ? ('Product (ID: ' + earning.productId + ')') : (earning.productId.name || 'Unknown product'),
+      productName:
+        typeof earning.productId === "string"
+          ? "Product (ID: " + earning.productId + ")"
+          : earning.productId.name || "Unknown product",
       sales: 0,
       conversions: 0,
       totalEarnings: 0,
